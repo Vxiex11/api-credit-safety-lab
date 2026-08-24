@@ -1,49 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Portal de Prácticas Escolares</title>
-</head>
-<body style="font-family: monospace; padding: 20px; background: #f4f4f4;">
-    <h2>Portal de Laboratorio y Asistencia</h2>
-    <hr>
-
-    {% if error %}
-        <p style="color: red; font-weight: bold;">[!] Error: {{ error }}</p>
-    {% endif %}
-
-    {% if login_page %}
-        <h3>Iniciar Sesión</h3>
-        <form method="POST" action="/login">
-            <p>Usuario: <input type="text" name="username" value="dev1"></p>
-            <p>Contraseña: <input type="password" name="password" value="password123"></p>
-            <p><button type="submit">Entrar</button></p>
-            <p>Credenciales de prueba: <b>dev1</b> / password123</p>
-        </form>
-    {% else %}
-        <h3>Panel de Alumno</h3>
-        <p>Usuario actual: <b>{{ username }}</b> | <a href="/logout">Cerrar sesión</a></p>
-        
-        <div style="background: #fff; padding: 15px; border: 1px solid #ccc; width: 400px;">
-            <h4>Puntos de Asistencia</h4>
-            <p style="font-size: 24px; font-weight: bold; color: green;">{{ points }} Puntos</p>
-            <p><i>Nota: Se requieren 50 puntos para inscribirse oficialmente al módulo de prácticas avanzadas.</i></p>
-        </div>
-
-        <h3>Ajuste de Puntos (Soporte / Panel de Instructor)</h3>
-        <p>Usted puede solicitar la transferencia o asignación de puntos de práctica para completar su inscripción.</p>
-        
-        <form method="POST" action="/admin/adjust-balance">
-            <p>Cuenta Destino: 
-                <select name="target_account">
-                    {% for u in users.keys() %}
-                        <option value="{{ u }}">{{ u }} (Puntos actuales: {{ users[u].points }})</option>
-                    {% endfor %}
-                </select>
-            </p>
-            <p>Puntos a transferir (ej. 45 o -10): <input type="number" name="amount" value="45"></p>
-            <p><button type="submit">Ejecutar Ajuste de Puntos</button></p>
-        </form>
-    {% endif %}
+<html>
+<head><title>Portal Escolar - Login</title></head>
+<body style="font-family: sans-serif; padding: 30px;">
+    <h2>Portal de Alumnos y Calificaciones</h2>
+    {% if error %}<p style="color: red;">{{ error }}</p>{% endif %}
+    <form method="POST">
+        <p>Usuario: <input type="text" name="uid" value="violeta"></p>
+        <p>Contraseña: <input type="password" name="password" value="violeta123"></p>
+        <p><button type="submit">Ingresar</button></p>
+    </form>
 </body>
 </html>
