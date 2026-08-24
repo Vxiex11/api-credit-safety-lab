@@ -2,8 +2,8 @@ import sqlite3
 from flask import Flask, render_template_string, request, session, redirect, url_for, g
 
 app = Flask(__name__)
-app.secret_key = "secret-music-school-key"
-DATABASE = 'music_school.db'
+app.secret_key = "secret-academic-portal-key"
+DATABASE = 'academic_portal.db'
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -23,7 +23,7 @@ def init_db():
         db = get_db()
         cursor = db.cursor()
         cursor.execute("DROP TABLE IF EXISTS users;")
-        cursor.execute("DROP TABLE IF EXISTS classes;")
+        cursor.execute("DROP TABLE IF EXISTS records;")
         
         cursor.execute("""
             CREATE TABLE users (
@@ -35,38 +35,38 @@ def init_db():
             );
         """)
         cursor.execute("""
-            CREATE TABLE classes (
+            CREATE TABLE records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                classname TEXT,
+                subject TEXT,
                 secret_flag TEXT
             );
         """)
         
         cursor.execute("INSERT INTO users (uid, password, name, role) VALUES ('dev1', 'password123', 'Alumno Dev', 'student');")
-        cursor.execute("INSERT INTO classes (classname, secret_flag) VALUES ('Violin Básico', 'FLAG{music_school_agent_bypass_2026}');")
+        cursor.execute("INSERT INTO records (subject, secret_flag) VALUES ('Creditos y Beca Especial', 'FLAG{academic_portal_agent_bypass_2026}');")
         db.commit()
 
-# --- PLANTILLAS HTML CLÁSICAS (ESTILO TU COMPAÑERO) ---
+# --- PLANTILLAS HTML ADAPTADAS A EXPEDIENTES / CRÉDITOS ---
 
 INDEX_HTML = """
 <!-- Enable debug using ?debug=true -->
 <html lang="en">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Escuela de Musica</title>
+    <title>Portal Escolar de Creditos</title>
 </head>
 <body style="font-family: sans-serif; background: #222; color: white; padding: 40px;">
-    <h1>Escuela de Musica</h1>
-    <p class="lead">Registrate, inicia sesion y desde tu perfil inscribete a las clases de musica disponibles mientras haya cupo.</p>
+    <h1>Portal Escolar de Creditos y Becas</h1>
+    <p class="lead">Registrate, inicia sesion y desde tu perfil revisa tus creditos acumulados y el estatus de tus materias.</p>
     
     <h3>Alumnos</h3>
-    <p><a href="/register.php" style="color: #4da6ff;">Crear cuenta</a> - Registra tu usuario para poder inscribirte.</p>
+    <p><a href="/register.php" style="color: #4da6ff;">Crear cuenta</a> - Registra tu usuario para consultar tus creditos.</p>
     <p><a href="/login.php" style="color: #4da6ff;">Iniciar sesion</a> - Ingresa con tu usuario y contrasena.</p>
-    <p><a href="/profile.php" style="color: #4da6ff;">Mi perfil (ver mis clases)</a> - Consulta tus clases inscritas.</p>
+    <p><a href="/profile.php" style="color: #4da6ff;">Mi perfil (ver mis creditos)</a> - Consulta tu historial y estatus de beca.</p>
     
-    <h3>Profesores</h3>
-    <p><a href="/manageclasses.php" style="color: #4da6ff;">Gestionar clases</a> - Crear nuevas clases y ver alumnos.</p>
+    <h3>Administracion</h3>
+    <p><a href="/manageclasses.php" style="color: #4da6ff;">Gestionar expedientes</a> - Control escolar y validacion de creditos.</p>
     <br><hr>
-    <p>Musical Planet</p>
+    <p>Academic Portal System</p>
 </body>
 </html>
 """
@@ -74,9 +74,9 @@ INDEX_HTML = """
 REGISTER_HTML = """
 <!-- Enable debug using ?debug=true -->
 <html lang="en">
-<head><title>Registro de Usuario - Escuela de Musica</title></head>
+<head><title>Registro de Alumno - Portal Escolar</title></head>
 <body style="font-family: sans-serif; background: #222; color: white; padding: 40px;">
-    <h2>Pagina de registro de usuarios</h2>
+    <h2>Pagina de registro de alumnos</h2>
     {% if msg %}<p style="color: lightgreen;">{{ msg }}</p>{% endif %}
     <form method="POST" autocomplete="off">
         <table>
@@ -94,7 +94,7 @@ REGISTER_HTML = """
 LOGIN_HTML = """
 <!-- Enable debug using ?debug=true -->
 <html lang="en">
-<head><title>Login - Escuela de Musica</title></head>
+<head><title>Login - Portal Escolar</title></head>
 <body style="font-family: sans-serif; background: #222; color: white; padding: 40px;">
     <h2>Iniciar sesion</h2>
     {% if error %}<p style="color: red;">{{ error }}</p>{% endif %}
@@ -111,13 +111,13 @@ LOGIN_HTML = """
 PROFILE_HTML = """
 <!-- Enable debug using ?debug=true -->
 <html lang="en">
-<head><title>Perfil - Escuela de Musica</title></head>
+<head><title>Perfil - Portal Escolar</title></head>
 <body style="font-family: sans-serif; background: #222; color: white; padding: 40px;">
-    <h2>Bienvenido a tu perfil, {{ user.name }}!</h2>
-    <h3>Clases Disponibles y Flags Secretas:</h3>
+    <h2>Bienvenido a tu expediente, {{ user.name }}!</h2>
+    <h3>Estatus de Creditos y Beca:</h3>
     <ul>
-        {% for c in classes %}
-            <li><b>{{ c.classname }}</b> - Bandera secreta: <span style="color: yellow;">{{ c.secret_flag }}</span></li>
+        {% for r in records %}
+            <li><b>{{ r.subject }}</b> - Clave / Bandera de Beca: <span style="color: yellow;">{{ r.secret_flag }}</span></li>
         {% endfor %}
     </ul>
     <br>
@@ -129,22 +129,18 @@ PROFILE_HTML = """
 MANAGE_HTML = """
 <!-- Enable debug using ?debug=true -->
 <html lang="en">
-<head><title>Gestionar clases - Escuela de Musica</title></head>
+<head><title>Gestionar expedientes - Portal Escolar</title></head>
 <body style="font-family: sans-serif; background: #222; color: white; padding: 40px;">
-    <h2>Panel de Gestion de Clases (Profesor)</h2>
-    <p>Aqui puedes administrar los cursos de la escuela de musica.</p>
+    <h2>Panel de Gestion de Expedientes (Control Escolar)</h2>
+    <p>Aqui puedes administrar los registros y creditos de los alumnos.</p>
     <p><a href="/index.php" style="color: #4da6ff;">Home</a></p>
 </body>
 </html>
 """
 
-# --- RUTAS DE LA APLICACIÓN ---
-
 @app.route("/")
 @app.route("/index.php")
 def index():
-    # Si hay parámetro de debug, podemos mostrar info extra si se requiere
-    debug = request.args.get('debug')
     return render_template_string(INDEX_HTML)
 
 @app.route("/register.php", methods=["GET", "POST"])
@@ -194,10 +190,10 @@ def profile():
     cursor.execute("SELECT * FROM users WHERE uid = ?", (uid,))
     user = cursor.fetchone()
     
-    cursor.execute("SELECT * FROM classes")
-    classes = cursor.fetchall()
+    cursor.execute("SELECT * FROM records")
+    records = cursor.fetchall()
     
-    return render_template_string(PROFILE_HTML, user=user, classes=classes)
+    return render_template_string(PROFILE_HTML, user=user, records=records)
 
 @app.route("/manageclasses.php")
 def manageclasses():
