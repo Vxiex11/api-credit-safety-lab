@@ -49,22 +49,44 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        username = session.get("username")
+        if not username or USERS_DB.get(username, {}).get("role") != "admin":
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
 # VULNERABILIDAD PLANTADA: Auth check presente (requiere login), pero incompleto (no valida si target_account es del usuario autenticado)
 @app.route("/admin/adjust-balance", methods=["POST"])
 @login_required
 def adjust_balance():
-    target_account = request.form.get("target_account")
+    # BUG INTENCIONAL: solo valida sesión activa, nunca revisa
+    # si session["username"] == from_account o si tiene rol admin.
+    from_account = request.form.get("from_account")
+    to_account = request.form.get("to_account")
     try:
         amount = int(request.form.get("amount", 0))
     except ValueError:
         return "Cantidad inválida", 400
 
-    if target_account in USERS_DB:
-        # Falla lógica: permite modificar el balance de CUALQUIER cuenta si estás logueado con cualquier usuario válido (ej. dev1)
-        USERS_DB[target_account]["balance"] += amount
-        return redirect(url_for("dashboard"))
-    
-    return "Cuenta destino no encontrada", 404
+    if amount <= 0:
+        return "Cantidad inválida", 400
+    if from_account not in USERS_DB or to_account not in USERS_DB:
+        return "Cuenta no encontrada", 404
+    if USERS_DB[from_account]["balance"] < amount:
+        return "Saldo insuficiente en cuenta origen", 400
+
+    USERS_DB[from_account]["balance"] -= amount
+    USERS_DB[to_account]["balance"] += amount
+    return redirect(url_for("dashboard"))
+
+@app.route("/request-topup", methods=["POST"])
+@login_required
+def request_topup():
+    # Simula un proceso legítimo pero inútil en el tiempo que importa
+    return "Solicitud enviada. Un administrador la revisará en 3-5 días hábiles.", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
