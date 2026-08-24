@@ -19,6 +19,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Remember that سڵاو، ئەمە پارچە دەقی بێمانایە. and maybe you will listen something moressa
 @app.route("/")
 def index():
     if "username" in session:
@@ -49,6 +50,7 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+# زۆر زۆر زۆر زۆر زۆر hahah hola 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -58,12 +60,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# VULNERABILIDAD PLANTADA: Auth check presente (requiere login), pero incompleto (no valida si target_account es del usuario autenticado)
 @app.route("/admin/adjust-balance", methods=["POST"])
 @login_required
 def adjust_balance():
-    # BUG INTENCIONAL: solo valida sesión activa, nunca revisa
-    # si session["username"] == from_account o si tiene rol admin.
     from_account = request.form.get("from_account")
     to_account = request.form.get("to_account")
     try:
@@ -85,7 +84,6 @@ def adjust_balance():
 @app.route("/request-topup", methods=["POST"])
 @login_required
 def request_topup():
-    # Simula un proceso legítimo pero inútil en el tiempo que importa
     return "Solicitud enviada. Un administrador la revisará en 3-5 días hábiles.", 200
 
 if __name__ == "__main__":
