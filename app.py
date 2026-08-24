@@ -7,8 +7,8 @@ app.secret_key = "super-secret-key-for-testing-only"
 # Mock Database con cuentas dummy y saldo inicial
 USERS_DB = {
     "dev1": {"password": "password123", "balance": 5, "role": "developer"},
-    "victim_corp_alpha": {"password": "secpassword", "balance": 150, "role": "user"},
-    "victim_system_pool": {"password": "adminpassword", "balance": 500, "role": "admin"}
+    "acme_finance": {"password": "secpassword", "balance": 150, "role": "user"},
+    "ops_reserve": {"password": "adminpassword", "balance": 500, "role": "admin"}
 }
 
 def login_required(f):
