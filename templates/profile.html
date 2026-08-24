@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<head><title>Mi Perfil Escolar</title></head>
+<body style="font-family: sans-serif; padding: 30px;">
+    <h2>Bienvenido a tu expediente, {{ user.username }}!</h2>
+    <p><b>Calificación actual:</b> {{ user.grade }}</p>
+    <p><b>Estatus de beca/materia:</b> {{ user.status }}</p>
+    <p><a href="/search">Buscar compañeros / expedientes</a> | <a href="/logout">Cerrar sesión</a></p>
+</body>
+</html>
