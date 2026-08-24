@@ -16,4 +16,4 @@ Laboratorio educativo de seguridad para revisar una falla de autorización en un
     pip install -r requirements.txt
     python app.py
 
-Después abre http://localhost:5000. No expongas este backend a Internet sin corregir la autorización, retirar las credenciales de ejemplo y configurar secretos seguros.
+
