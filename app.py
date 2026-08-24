@@ -1,83 +1,123 @@
-from flask import Flask, render_template, request, redirect, url_for, session, abort
-from functools import wraps
+import sqlite3
+from flask import Flask, render_template, request, session, redirect, url_for, g
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key-for-testing-only"
+app.secret_key = "super-secret-key-school-portal"
+DATABASE = 'school.db'
 
-# Mock Database con cuentas dummy y puntos iniciales
-USERS_DB = {
-    "dev1": {"password": "password123", "points": 5, "role": "student"},
-    "acme_finance": {"password": "secpassword", "points": 150, "role": "user"},
-    "ops_reserve": {"password": "adminpassword", "points": 500, "role": "instructor"}
-}
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "username" not in session:
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
+        # Creamos la tabla de alumnos y de flags/secretos ocultos
+        cursor.execute("DROP TABLE IF EXISTS students;")
+        cursor.execute("DROP TABLE IF EXISTS secrets;")
+        
+        cursor.execute("""
+            CREATE TABLE students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                password TEXT,
+                grade TEXT,
+                status TEXT
+            );
+        """)
+        cursor.execute("""
+            CREATE TABLE secrets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                flag TEXT,
+                description TEXT
+            );
+        """)
+        
+        # Datos iniciales
+        cursor.execute("INSERT INTO students (username, password, grade, status) VALUES ('violeta', 'violeta123', '9.5', 'Enrolled');")
+        cursor.execute("INSERT INTO students (username, password, grade, status) VALUES ('alumno_invitado', 'guest123', '7.0', 'Pending');")
+        cursor.execute("INSERT INTO secrets (flag, description) VALUES ('FLAG{sql_injection_master_2026}', 'Flag secreta del profesor para la beca especial');")
+        db.commit()
 
 @app.route("/")
 def index():
     if "username" in session:
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("profile"))
     return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        username = request.form.get("username")
+        uid = request.form.get("uid")
         password = request.form.get("password")
-        if username in USERS_DB and USERS_DB[username]["password"] == password:
-            session["username"] = username
-            return redirect(url_for("dashboard"))
-        error = "Credenciales inválidas"
-    return render_template("index.html", error=error, login_page=True)
+        
+        db = get_db()
+        cursor = db.cursor()
+        
+        # VULNERABILIDAD INTENCIONAL DE SQL INJECTION EN EL LOGIN
+        query = f"SELECT * FROM students WHERE username = '{uid}' AND password = '{password}'"
+        try:
+            cursor.execute(query)
+            user = cursor.fetchone()
+        except sqlite3.OperationalError as e:
+            return f"Error en la consulta SQL: {e}", 400
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
+        if user:
+            session["username"] = user["username"]
+            return redirect(url_for("profile"))
+        else:
+            error = "Credenciales inválidas o expediente no encontrado."
+            
+    return render_template("login.html", error=error)
+
+@app.route("/profile")
+def profile():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    
     username = session["username"]
-    user_data = USERS_DB.get(username)
-    return render_template("index.html", username=username, points=user_data["points"], users=USERS_DB)
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM students WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    
+    return render_template("profile.html", user=user)
+
+@app.route("/search", methods=["GET", "POST"])
+def search():
+    results = []
+    query_str = ""
+    if request.method == "POST":
+        query_str = request.form.get("query", "")
+        db = get_db()
+        cursor = db.cursor()
+        
+        # OTRA VULNERABILIDAD SQLI EN LA BÚSQUEDA DE ALUMNOS
+        sql = f"SELECT username, grade, status FROM students WHERE username LIKE '%{query_str}%'"
+        try:
+            cursor.execute(sql)
+            results = cursor.fetchall()
+        except sqlite3.OperationalError as e:
+            results = [{"username": f"Error SQL: {e}", "grade": "", "status": ""}]
+            
+    return render_template("search.html", results=results, query_str=query_str)
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        username = session.get("username")
-        if not username or USERS_DB.get(username, {}).get("role") != "instructor":
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
-
-@app.route("/admin/adjust-balance", methods=["POST"])
-@login_required
-def adjust_balance():
-    from_account = request.form.get("from_account")
-    to_account = request.form.get("to_account")
-    try:
-        amount = int(request.form.get("amount", 0))
-    except ValueError:
-        return "Cantidad inválida", 400
-
-    if amount <= 0:
-        return "Cantidad inválida", 400
-    if from_account not in USERS_DB or to_account not in USERS_DB:
-        return "Cuenta no encontrada", 404
-    if USERS_DB[from_account]["points"] < amount:
-        return "Puntos insuficientes en cuenta origen", 400
-
-    USERS_DB[from_account]["points"] -= amount
-    USERS_DB[to_account]["points"] += amount
-    return redirect(url_for("dashboard"))
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    init_db()
+    app.run(host="0.0.0.0", port=5000, debug=True)
