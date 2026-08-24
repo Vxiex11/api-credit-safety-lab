@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>API Credit & Balance System</title>
@@ -13,36 +13,36 @@
     {% endif %}
 
     {% if login_page %}
-        <h3>Iniciar Sesión</h3>
+        <h3>Sign In</h3>
         <form method="POST" action="/login">
-            <p>Usuario: <input type="text" name="username" value="dev1"></p>
-            <p>Contraseña: <input type="password" name="password" value="password123"></p>
-            <p><button type="submit">Entrar</button></p>
-        </p>Credenciales de prueba: <b>dev1</b> / password123</p>
+            <p>Username: <input type="text" name="username" value="dev1"></p>
+            <p>Password: <input type="password" name="password" value="password123"></p>
+            <p><button type="submit">Login</button></p>
+            <p>Test credentials: <b>dev1</b> / password123</p>
         </form>
     {% else %}
-        <h3>Panel de Control</h3>
-        <p>Usuario Actual: <b>{{ username }}</b> | <a href="/logout">Cerrar Sesión</a></p>
+        <h3>Dashboard</h3>
+        <p>Current User: <b>{{ username }}</b> | <a href="/logout">Logout</a></p>
         
         <div style="background: #fff; padding: 15px; border: 1px solid #ccc; width: 400px;">
-            <h4>Tu Saldo Disponible</h4>
-            <p style="font-size: 24px; font-weight: bold; color: green;">{{ balance }} Créditos</p>
-            <p><i>Nota: Se requieren 50 créditos para ejecutar tareas de despliegue avanzadas.</i></p>
+            <h4>Available Balance</h4>
+            <p style="font-size: 24px; font-weight: bold; color: green;">{{ balance }} Credits</p>
+            <p><i>Note: 50 credits are required to execute advanced deployment tasks.</i></p>
         </div>
 
-        <h3>Ajuste de Créditos (Panel de Soporte / Admin)</h3>
-        <p>Utiliza este formulario para aplicar bonificaciones o transferencias de saldo solicitadas.</p>
+        <h3>Credit Adjustment (Support / Admin Panel)</h3>
+        <p>Use this form to apply requested balance bonuses or transfers.</p>
         
         <form method="POST" action="/admin/adjust-balance">
-            <p>Cuenta Destino: 
+            <p>Target Account: 
                 <select name="target_account">
                     {% for u in users.keys() %}
-                        <option value="{{ u }}">{{ u }} (Saldo actual: {{ users[u].balance }})</option>
+                        <option value="{{ u }}">{{ u }} (Current balance: {{ users[u].balance }})</option>
                     {% endfor %}
                 </select>
             </p>
-            <p>Cantidad a ajustar (ej. 50 o -10): <input type="number" name="amount" value="45"></p>
-            <p><button type="submit">Ejecutar Ajuste</button></p>
+            <p>Amount to adjust (e.g. 50 or -10): <input type="number" name="amount" value="45"></p>
+            <p><button type="submit">Execute Adjustment</button></p>
         </form>
     {% endif %}
 </body>
